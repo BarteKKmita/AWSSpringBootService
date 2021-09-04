@@ -23,7 +23,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Getter
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class TeamEntity {
 
   @Id
