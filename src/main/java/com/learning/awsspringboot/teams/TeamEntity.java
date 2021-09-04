@@ -1,6 +1,8 @@
 package com.learning.awsspringboot.teams;
 
-import com.learning.awsspringboot.players.Player;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.learning.awsspringboot.players.PlayerEntity;
 import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -16,17 +18,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "player_table")
+@Table(name = "team_table")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Getter
-public class Team {
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class TeamEntity {
 
   @Id
   @GeneratedValue
   @Column(name = "team_id")
-  private int team_id;
+  private int teamId;
 
   @NotNull
   @Column(name = "team_name")
@@ -37,5 +40,6 @@ public class Team {
   private String establishmentYear;
 
   @OneToMany(fetch = FetchType.EAGER, mappedBy = "playerTeam")
-  private List<Player> teamSquad;
+  @JsonManagedReference
+  private List<PlayerEntity> teamSquad;
 }

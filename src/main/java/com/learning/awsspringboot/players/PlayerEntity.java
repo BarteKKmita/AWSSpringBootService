@@ -1,6 +1,7 @@
 package com.learning.awsspringboot.players;
 
-import com.learning.awsspringboot.teams.Team;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.learning.awsspringboot.teams.TeamEntity;
 import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -21,7 +22,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Getter
-public class Player {
+public class PlayerEntity {
 
   @Id
   @GeneratedValue
@@ -41,5 +42,6 @@ public class Player {
 
   @ManyToOne
   @JoinColumn(name = "team_id", referencedColumnName = "team_id")
-  private Team playerTeam;
+  @JsonBackReference
+  private TeamEntity playerTeam;
 }
