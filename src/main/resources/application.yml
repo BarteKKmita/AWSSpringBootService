@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${AWS_DATABASE_HOST:localhost}:${AWS_DATABASE_PORT:5432}/${AWS_DATABASE_NAME:bclassleague}
+    username: ${AWS_DATABASE_USERNAME:postgres}
+    password: ${AWS_DATABASE_PASSWORD:root}
+
+env: ${PROFILE:test}
