@@ -4,4 +4,4 @@ spring:
     username: ${AWS_DATABASE_USERNAME:postgres}
     password: ${AWS_DATABASE_PASSWORD:root}
 
-env: ${PROFILE:test}
+env: ${PROFILE:dev}
