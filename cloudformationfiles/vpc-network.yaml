@@ -134,7 +134,8 @@ Resources:
       SubnetId: !Ref PublicSubnetA
       RouteTableId: !Ref PublicRouteTable
 
-  #  Nat gateway needs to be set with private subnets to enable egress internet connection.
+  #  Nat gateway needs to be asosiated with public subnet. Private subnets communicate with
+  #  internet throughout Nat gateway
   # Source: https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/ECS/FargateLaunchType/clusters/public-vpc.yml
 
   ElasticIpForNatGateway:
