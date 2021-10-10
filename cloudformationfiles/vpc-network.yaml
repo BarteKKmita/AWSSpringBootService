@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Virtual server configuration with networking and connection to internet for ecs
+  purpose
+
+Parameters:
+  Enviroment:
+    Type: String
+    Description: "Name of the environment like dev or prod"
+    Default: "playground"
+
+Resources:
+
+  # VPC this is a virtual server within all resources will be created
+  VirtualServerForFargateClusterVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      # 16 on the end means that for last to bytes can be changed in the address e.g 10.0.120.10
+      # It is good to use 10.0.0.0 because this ip is only use in private subnets ( there is no
+      # public ip like this)
+      CidrBlock: 10.0.0.0/16
+      # To enable public dns for resources by default change parameters to true
+      EnableDnsSupport: false
+      EnableDnsHostnames: false
+      # Instance tenancy indicates what kind of resources will be created inside VPC. Default means that it will be on shared hardware
+      InstanceTenancy: default
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtualServerForFargateClusterVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: { Ref: 'AWS::Region' }
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtualServerForFargateClusterVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: { Ref: 'AWS::Region' }
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  PrivateSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtualServerForFargateClusterVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone:
+        Fn::Select:
+          - 2
+          - Fn::GetAZs: { Ref: 'AWS::Region' }
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtualServerForFargateClusterVPC
+      CidrBlock: 10.0.4.0/24
+      # This indicates that it is a public subnet
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: { Ref: 'AWS::Region' }
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  # To be able to reach internet from public subnets, Internet gateway must be set.
+  # Source: https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html
+  # Source: https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/ECS/FargateLaunchType/clusters/public-vpc.yml
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  GatewayAttachement:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VirtualServerForFargateClusterVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Route table needs to be created and attached to VPC
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VirtualServerForFargateClusterVPC
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  #  Nat gateway needs to be asosiated with public subnet. Private subnets communicate with
+  #  internet throughout Nat gateway
+  # Source: https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/ECS/FargateLaunchType/clusters/public-vpc.yml
+
+  ElasticIpForNatGateway:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGatewayForPrivateSubnets:
+    Type: AWS::EC2::NatGateway
+    DependsOn: PublicSubnetA
+    Properties:
+      AllocationId: !GetAtt ElasticIpForNatGateway.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Owner
+          Value: Bartlomiej
+        - Key: Enviroment
+          Value: Playground
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VirtualServerForFargateClusterVPC
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayForPrivateSubnets
+
+  PrivateRouteTableOneAssociationA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetA
+
+  PrivateRouteTableOneAssociationB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetB
+
+  PrivateRouteTableOneAssociationC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetC
